@@ -291,6 +291,17 @@ static int sywt78_ioctl(unsigned int cmd, unsigned long arg)
 			hrtimer_cancel(&sywt78_timer);
 		}
 		break;
+
+	case FLASH_IOC_GET_MAX_TORCH_DUTY:
+		PK_DBG("FLASH_IOC_GET_MAX_TORCH_DUTY(%d)\n", channel);
+		fl_arg->arg = 1;
+		break;
+
+	case FLASH_IOC_GET_CURRENT_TORCH_DUTY:
+		PK_DBG("FLASH_IOC_GET_CURRENT_TORCH_DUTY(%d)\n", channel);
+		fl_arg->arg = g_flash_duty;
+		break;
+
 	default:
 		PK_INF("No such command and arg(%d): (%d, %d)\n",
 				channel, _IOC_NR(cmd), (int)fl_arg->arg);

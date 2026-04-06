@@ -823,6 +823,8 @@ static long _flashlight_ioctl(
 	case FLASH_IOC_GET_DUTY_CURRENT:
 	case FLASH_IOC_GET_HW_FAULT:
 	case FLASH_IOC_GET_HW_FAULT2:
+	case FLASH_IOC_GET_MAX_TORCH_DUTY:
+	case FLASH_IOC_GET_CURRENT_TORCH_DUTY:
 		if (fdev->ops) {
 			ret = fdev->ops->flashlight_ioctl(
 					cmd, (unsigned long)&fl_dev_arg);
