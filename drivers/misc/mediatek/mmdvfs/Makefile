@@ -125,7 +125,9 @@ ifeq (true, $(MMDVFS_LIMIT))
 ccflags-y += -DMMDVFS_LIMIT
 endif
 ifeq ($(platformdir_exists), y)
-obj-y += $(subst ",,$(MTK_PLATFORM))/
+ifneq ($(MTK_PLATFORM),)
+obj-y += $(MTK_PLATFORM)/
+endif
 else
 obj-y += mmdvfs_plat_default.o
 endif

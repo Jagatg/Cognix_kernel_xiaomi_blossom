@@ -154,7 +154,7 @@ zinstall install:
 
 PHONY += dtbs dtbs_install
 
-dtbs: prepare scripts dtbo_check
+dtbs: prepare scripts $(if $(MTK_PLATFORM),dtbo_check)
 	$(Q)$(MAKE) $(build)=$(boot)/dts
 
 dtbs_install:

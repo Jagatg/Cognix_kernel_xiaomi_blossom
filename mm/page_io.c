@@ -192,6 +192,7 @@ bad_bmap:
 static bool swap_sched_async_compress(struct page *page)
 {
 	struct swap_info_struct *sis;
+	int nid = page_to_nid(page);
 	pg_data_t *pgdat = NODE_DATA(nid);
 
 	if (unlikely(!pgdat->kcompressd))
