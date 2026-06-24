@@ -175,8 +175,7 @@ static bool pchr_select_charging_current_limit(struct mtk_charger *info,
 	}
 
 	if (info->enable_sw_jeita) {
-		if (IS_ENABLED(CONFIG_USBIF_COMPLIANCE)
-			&& info->chr_type == POWER_SUPPLY_TYPE_USB)
+		if (info->chr_type == POWER_SUPPLY_TYPE_USB)
 			chr_debug("USBIF & STAND_HOST skip current check\n");
 		else {
 			if (info->sw_jeita.sm == TEMP_T0_TO_T1) {
@@ -216,12 +215,18 @@ static bool pchr_select_charging_current_limit(struct mtk_charger *info,
 done:
 
 	ret = charger_dev_get_min_charging_current(info->chg1_dev, &ichg1_min);
-	if (ret != -ENOTSUPP && pdata->charging_current_limit < ichg1_min)
-		pdata->charging_current_limit = 0;
+	if (ret != -ENOTSUPP && pdata->charging_current_limit < ichg1_min) {
+		pdata->charging_current_limit = ichg1_min;
+		chr_err("min_charging_current is too low, clamp to %d\n",
+			ichg1_min);
+	}
 
 	ret = charger_dev_get_min_input_current(info->chg1_dev, &aicr1_min);
-	if (ret != -ENOTSUPP && pdata->input_current_limit < aicr1_min)
-		pdata->input_current_limit = 0;
+	if (ret != -ENOTSUPP && pdata->input_current_limit < aicr1_min) {
+		pdata->input_current_limit = aicr1_min;
+		chr_err("min_input_current is too low, clamp to %d\n",
+			aicr1_min);
+	}
 
 	chr_err("thermal:%d %d setting:%d %d type:%d:%d usb_unlimited:%d usbif:%d usbsm:%d aicl:%d atm:%d bm:%d b:%d\n",
 		_uA_to_mA(pdata->thermal_input_current_limit),
