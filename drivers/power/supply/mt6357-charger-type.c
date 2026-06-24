@@ -84,6 +84,7 @@ struct mtk_charger_type {
 
 	struct iio_channel *chan_vbus;
 	struct work_struct chr_work;
+	struct delayed_work chrdet_poll_work;
 
 	enum power_supply_usb_type type;
 
@@ -538,6 +539,9 @@ void do_charger_detect(struct mtk_charger_type *info, bool en)
 	union power_supply_propval prop, prop2, prop3;
 	int ret = 0;
 
+	if (en)
+		cancel_delayed_work(&info->chrdet_poll_work);
+
 #ifndef CONFIG_TCPC_CLASS
 	if (!mt_usb_is_device()) {
 		pr_info("charger type: UNKNOWN, Now is usb host mode. Skip detection\n");
@@ -565,6 +569,26 @@ void do_charger_detect(struct mtk_charger_type *info, bool en)
 	power_supply_changed(info->psy);
 }
 
+static void chrdet_poll_work(struct work_struct *work)
+{
+	struct mtk_charger_type *info = container_of(work,
+		struct mtk_charger_type, chrdet_poll_work.work);
+	unsigned int chrdet = 0;
+
+	chrdet = bc11_get_register_value(info->regmap,
+		PMIC_RGS_CHRDET_ADDR,
+		PMIC_RGS_CHRDET_MASK,
+		PMIC_RGS_CHRDET_SHIFT);
+
+	if (chrdet) {
+		pr_notice("%s: chrdet:%d(poll)\n", __func__, chrdet);
+		do_charger_detect(info, chrdet);
+	} else {
+		schedule_delayed_work(&info->chrdet_poll_work,
+			msecs_to_jiffies(5000));
+	}
+}
+
 static void do_charger_detection_work(struct work_struct *data)
 {
 	struct mtk_charger_type *info = (struct mtk_charger_type *)container_of(
@@ -581,6 +605,8 @@ static void do_charger_detection_work(struct work_struct *data)
 		do_charger_detect(info, chrdet);
 	else {
 		hw_bc11_done(info);
+		schedule_delayed_work(&info->chrdet_poll_work,
+			msecs_to_jiffies(5000));
 		/* 8 = KERNEL_POWER_OFF_CHARGING_BOOT */
 		/* 9 = LOW_POWER_OFF_CHARGING_BOOT */
 		if (info->bootmode == 8 || info->bootmode == 9) {
@@ -888,6 +914,7 @@ static int mt6357_charger_type_probe(struct platform_device *pdev)
 		}
 
 		INIT_WORK(&info->chr_work, do_charger_detection_work);
+		INIT_DELAYED_WORK(&info->chrdet_poll_work, chrdet_poll_work);
 		schedule_work(&info->chr_work);
 
 		ret = devm_request_threaded_irq(&pdev->dev,
@@ -913,8 +940,10 @@ static int mt6357_charger_type_remove(struct platform_device *pdev)
 {
 	struct mtk_charger_type *info = platform_get_drvdata(pdev);
 
-	if (info)
+	if (info) {
+		cancel_delayed_work_sync(&info->chrdet_poll_work);
 		devm_kfree(&pdev->dev, info);
+	}
 	return 0;
 }
 
